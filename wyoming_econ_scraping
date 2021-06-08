@@ -1,0 +1,87 @@
+library(RSelenium)
+library(rvest)
+library(tidyverse)
+library(wdman)
+# INITIALISATION #
+RSelenium::rsDriver(port= 5553L)
+
+c <-remoteDriver(
+    remoteServerAddr="localhost",
+    port=5553L,
+    browserName="chrome"
+)
+c$open()
+c$navigate("http://eadiv.state.wy.us/demog_data/County_Profile.html")
+
+# DATASETS #
+node_id <- c()
+node_area <- c()
+node_name <- c()
+pop <- c()
+density <- c()
+name <- c()
+db <- data.frame(cbind(pop,density))
+# ITERATIONS #
+i <- 1
+a <- 1
+
+# RETRIEVE XPATH #
+for(i in seq(from=1,to=15,by=2)){
+    
+    county <- c$findElement("xpath",
+                            paste('/html/body/center/center[2]/table/tbody/tr/td[1]/a[',i,']'))
+    county$clickElement()
+    #SCRAPING
+        url <- c$getCurrentUrl()[[1]]
+        page=read_html(url)
+        node <- page %>% html_nodes("div") %>% html_attr("id") 
+    #ORGANIZE
+    node_id[a] <- paste("//*[@id='",node,"']/table/tbody/tr[4]/td[1]/font",sep="")
+    node_id[a] <- as.character(node_id[a])
+    node <- NULL
+    #ITERATE
+    a <- a+1
+    #PREVIOUS PAGE
+    c$goBack()
+    
+}
+
+a <- 1
+i <- 1
+
+# RETRIEVE .font #
+library(stringr)
+font <- ".font"
+xl <- ".xl1666"
+for(i in 1:8){
+    node_id[i] <- str_sub(node_id[i],36,-32)
+    node_area[i] <- paste(font,"7",node_id[i],sep="")
+    node_name[i] <- paste(xl,node_id[i],":nth-child(2)",sep="")
+}
+node_id
+node_area
+node_name[1] <- ".xl166420179:nth-child(2)"
+node_name
+# RETRIEVE DATA #
+a <- 1
+i <- 1
+for(i in seq(from=1,to=15,by=2)){
+    county <- c$findElement(using="xpath",
+                            paste('/html/body/center/center[2]/table/tbody/tr/td[1]/a[',i,']'))
+    county$clickElement()
+    
+    
+        url <- c$getCurrentUrl()[[1]]
+        page=read_html(url)
+        x <- page %>% html_nodes(node_area[a]) %>% html_text()
+        y <- page %>% html_nodes(node_name[a]) %>% html_text()
+        pop[a] <- as.numeric(gsub(",","",x[2]))
+        density[a] <- x[3]
+        name[a] <- y
+        a <- a+1
+        c$goBack()
+}
+
+
+db <- data.frame(name,pop,density)
+View(db)

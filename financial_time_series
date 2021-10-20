@@ -1,0 +1,74 @@
+library(stringr)
+
+path <- ""
+
+lib <- data.frame(c(list.files(path,pattern=".csv")))
+lib
+nrow(lib)
+for(k in 1:nrow(lib)){
+  lib[k,] <- str_sub(lib[k,],1,-5)
+}
+
+colnames(lib)[1] <- "names"
+lib
+lib$names[1]
+
+paste(path,"/",lib$names[1],".csv",sep="")
+
+n <- 14
+
+for(n in 1:nrow(lib)){
+  data <- read.csv(paste(path,"/",lib$names[n],".csv",sep=""),header = T) # opening the file, iterating through the lib vector
+  data <- data[,-c(1,2)] # removes the index and date (date can be added back later on)
+  country_1d <- paste(lib$names[n],"1d",sep="") # is a string - not the actual data
+  country_10d <- paste(lib$names[n],"10d",sep="") # is a string - not the actual data
+  
+  temp_return_data <- c(rep(0,nrow(data))) # creates a vector that will hold the data in the return-loops
+  
+  returns1D <- data.frame(matrix(0,nrow=nrow(data),ncol=ncol(data))) # creates the final data frame that will hold the 1d returns
+  returns10D <- data.frame(matrix(0,nrow=nrow(data),ncol=ncol(data))) # creates the final data frame that will hold the 10d returns
+  
+  for(c in 1:ncol(data)){
+    data[,c] <- as.numeric(data[,c])
+    for(i in 2:nrow(data)){
+      temp_return_data[i] <- (data[i,c]-data[i-1,c]) / data[i-1,c]  
+    }
+    returns1D[,c] <- temp_return_data
+    temp_return_data <- c(rep(0,nrow(data)))
+  }                                                                 # this first loop calculates the 1d return
+  
+  for(c in 1:ncol(data)){
+    data[,c] <- as.numeric(data[,c])
+    for(i in 11:nrow(data)){
+      temp_return_data[i] <- (data[i,c]-data[i-10,c]) / data[i-10,c]
+    }
+    returns10D[,c] <- temp_return_data
+    temp_return_data <- c(rep(0,nrow(data)))
+  }                                                                 # this second loop calculates the 10d return
+  
+  names(returns1D) <- names(data) # tickers are put as column labels
+  names(returns10D) <- names(data) # tickers are put as column labels
+  assign(country_1d,returns1D)     # the name of returns1D is changed, now it will be referred to as 
+  assign(country_10d,returns10D)   # the name of returns10D is changed, now it will be referred to as what's in country_10d. 
+  
+  
+  result_table_1d <- paste(country_1d,"_analysis",sep="") # creates the name of the final table 1d
+  result_table_10d <- paste(country_10d,"_analysis",sep="") # creates the name of the final table 10d
+  
+  constituents <- c(names(data)) # retrieves the names of the constituents from the data headers. 
+  mean <- c() # this vector will receive the value of the mean return
+  sd <- c()  # this vector will receive the standard deviation of the return 
+  for(k in 1:ncol(returns1D)){
+    mean[k] <- mean(returns1D[,k],na.rm=T)
+    sd[k] <- sd(returns1D[,k],na.rm=T)
+  }
+  table_1d <- data.frame(constituents,mean,sd) # 
+  assign(result_table_1d,table_1d)
+  
+  for(k in 1:ncol(returns10D)){
+    mean[k] <- mean(returns10D[,k],na.rm=T)
+    sd[k] <- sd(returns10D[,k],na.rm=T)
+  }
+  table_10d <- data.frame(constituents,mean,sd)
+  assign(result_table_10d,table_10d)
+}

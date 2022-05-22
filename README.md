@@ -1,2 +1,1 @@
-# 010
-basic webscraping using R, RSelenium and Chrome
+basic webscraping in Python and R. 

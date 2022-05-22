@@ -1,0 +1,68 @@
+import re
+import requests
+from bs4 import BeautifulSoup
+import csv
+import pandas as pd
+from openpyxl import Workbook, load_workbook
+from openpyxl.utils import get_column_letter
+
+url = 'https://www.tutorialspoint.com/python-pandas-how-to-delete-a-row-from-a-dataframe'
+
+response = requests.get(url)
+source_code = BeautifulSoup(response.text,'html.parser')
+source_code
+
+raw_links = []
+
+for k in source_code.find_all('a'):
+    link = k.get('href')
+    raw_links.append(link)
+
+base_url = 'https://www.tutorialspoint.com'
+full_links =[]
+
+# concatenate to obtain full links 
+for k in range(len(raw_links)):
+    if('https' in raw_links[k]):
+        print('ok')
+        full_links.append(raw_links[k])
+    else: 
+        print('to concatenate')
+        full_links.append(base_url + str(raw_links[k]))
+
+full_links
+
+# check if something is missing
+for q in range(len(full_links)):
+    if('https' in full_links[q]):
+        print('ok')
+    else:
+        print('wrong')
+
+full_links = pd.DataFrame(full_links)
+# preparing the spreadsheet
+
+size = len(full_links)
+
+wb = Workbook()
+ws1 = wb.create_sheet('entry',0)
+for row in range(1,len(full_links)):
+    ws1[get_column_letter(col) + str(row+2)]=full_links.iloc[row,0]
+wb.save('D:/python/sample.xlsx')
+
+wbook = Workbook()
+for t in range(len(full_links)):
+    s=1
+    rawlinks = []
+    local_url = full_links.iloc[t,0]
+    local_response = requests.get(local_url)
+    local_soup = BeautifulSoup(local_response.text, 'html.parser')
+    for u in local_soup.find_all('a'):
+        sublink = u.get('href')
+        rawlinks.append(sublink)
+    rawlinks = pd.DataFrame(rawlinks)
+    ws_local = wbook.create_sheet(str(s))
+    s +=1
+    for row in range(1, len(rawlinks)):
+        ws_local[get_column_letter(col) + str(row + 2)]=rawlinks.iloc[row,0]
+    wbook.save('D:/python/sample.xlsx')
